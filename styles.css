@@ -1,29 +1,82 @@
+/* Small UI improvements for project/task layout */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  color: #222;
+}
+
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #007bff;
+  color: white;
+}
+
 .container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    background: #f0f0f0;
+  display: flex;
+  gap: 24px;
+  padding: 16px;
+  flex-wrap: wrap;
 }
 
-h1 {
-    font-family: Arial, sans-serif;
-    color: #333;
+.projects-section {
+  flex: 1 1 500px;
 }
 
-.button {
-    background: #007bff;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    font-size: 16px;
-    border-radius: 5px;
-    transition: background 0.3s;
+.add-section {
+  width: 280px;
+  flex: 0 0 280px;
+  background: #fafafa;
+  padding: 12px;
+  border-radius: 6px;
 }
 
-.button:hover {
-    background: #0056b3;
+.project-item {
+  border: 1px solid #ddd;
+  padding: 8px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+}
+
+.project-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.project-title {
+  font-weight: bold;
+}
+
+.task-list {
+  margin: 8px 0;
+  padding-left: 16px;
+}
+
+.add-task-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn.small { padding: 4px 8px; font-size: 13px; }
+.btn.tiny { padding: 2px 6px; font-size: 11px; }
+.btn.danger { background: #c82333; }
+
+@media (max-width: 700px) {
+  .container { flex-direction: column; }
+  .add-section { width: 100%; }
 }
