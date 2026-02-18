@@ -1,29 +1,241 @@
+/* Base styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f5f5f5;
+    color: #333;
+}
+
+/* Header styles */
+header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 24px;
+}
+
+#sign-in-area {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#user-info {
+    font-size: 14px;
+    margin-right: 10px;
+}
+
+/* Main content */
+main {
+    max-width: 900px;
+    margin: 30px auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+section {
+    margin-bottom: 30px;
+}
+
+h2 {
+    color: #667eea;
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+/* Project list styles */
+#project-list {
+    list-style: none;
+    padding: 0;
+}
+
+.project-item {
+    background: #f9f9f9;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    border-left: 4px solid #667eea;
+    transition: all 0.3s ease;
+}
+
+.project-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transform: translateX(5px);
+}
+
+.project-item strong {
+    font-size: 18px;
+    color: #333;
+}
+
+/* Task list styles */
+.task-list {
+    list-style: none;
+    padding-left: 20px;
+    margin-top: 10px;
+}
+
+.task-list li {
+    background: white;
+    padding: 8px 12px;
+    margin: 5px 0;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Form styles */
+form {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+label {
+    font-weight: 600;
+    color: #555;
+}
+
+input[type="text"] {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+
+input[type="text"]:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.task-input {
+    min-width: 150px;
+    padding: 6px 10px;
+    font-size: 13px;
+}
+
+.add-task-form {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+/* Button styles */
+.button, button[type="submit"], input[type="submit"] {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 600;
+}
+
+.button:hover, button[type="submit"]:hover, input[type="submit"]:hover {
+    background: #5568d3;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+.delete-btn {
+    background: #e74c3c;
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
+.delete-btn:hover {
+    background: #c0392b;
+}
+
+.delete-task-btn {
+    background: #e74c3c;
+    padding: 4px 8px;
+    font-size: 12px;
+    border-radius: 3px;
+    min-width: auto;
+}
+
+.delete-task-btn:hover {
+    background: #c0392b;
+}
+
+.add-task-btn {
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
+/* Footer styles */
+footer {
+    text-align: center;
+    padding: 20px;
+    color: #777;
+    font-size: 14px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    #sign-in-area {
+        margin-top: 10px;
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    main {
+        margin: 20px 10px;
+        padding: 15px;
+    }
+    
+    form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    input[type="text"] {
+        width: 100%;
+        min-width: auto;
+    }
+    
+    .button, button[type="submit"], input[type="submit"] {
+        width: 100%;
+    }
+}
+
+/* Legacy container support */
 .container {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    min-height: 100vh;
     background: #f0f0f0;
 }
 
 h1 {
     font-family: Arial, sans-serif;
     color: #333;
-}
-
-.button {
-    background: #007bff;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    font-size: 16px;
-    border-radius: 5px;
-    transition: background 0.3s;
-}
-
-.button:hover {
-    background: #0056b3;
 }
