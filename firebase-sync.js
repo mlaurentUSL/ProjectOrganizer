@@ -119,13 +119,13 @@ async function observeAuth(callback) {
 
 // Open sign-in flow (prompts for email/password)
 async function openSignIn() {
-  try {
-    const authModule = await import('./auth.js').catch(() => null);
-    if (!authModule || !authModule.login) {
-      alert('Firebase authentication not configured');
-      return;
-    }
+  const authModule = await import('./auth.js').catch(() => null);
+  if (!authModule || !authModule.login) {
+    alert('Firebase authentication not configured');
+    return;
+  }
 
+  try {
     const email = prompt('Enter email:');
     if (!email) return;
     
@@ -140,23 +140,15 @@ async function openSignIn() {
     // If login fails, try signup
     if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
       const trySignup = confirm('Login failed. Would you like to create a new account?');
-      if (trySignup) {
+      if (trySignup && authModule.signup) {
         try {
-          // Reuse the same authModule from above scope
           const email = prompt('Enter email for new account:');
           if (!email) return;
           
           const password = prompt('Enter password (min 6 characters):');
           if (!password) return;
 
-          // Get authModule again for signup
-          const authModuleForSignup = await import('./auth.js').catch(() => null);
-          if (!authModuleForSignup || !authModuleForSignup.signup) {
-            alert('Signup not available');
-            return;
-          }
-
-          await authModuleForSignup.signup(email, password);
+          await authModule.signup(email, password);
           alert('Account created and signed in successfully!');
         } catch (signupError) {
           alert('Signup failed: ' + signupError.message);
