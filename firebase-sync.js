@@ -52,7 +52,7 @@ async function saveProjects(projects) {
 
   try {
     const { db } = await import('./firebase-config.js');
-    const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js');
+    const { doc, setDoc } = await import('firebase/firestore');
     
     // Save to user-specific document
     const userDocRef = doc(db, 'users', currentUser.uid);
@@ -72,7 +72,7 @@ async function setupFirestoreSync() {
 
   try {
     const { db } = await import('./firebase-config.js');
-    const { doc, onSnapshot } = await import('https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js');
+    const { doc, onSnapshot } = await import('firebase/firestore');
     
     const userDocRef = doc(db, 'users', currentUser.uid);
     
