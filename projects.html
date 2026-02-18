@@ -1,39 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Projects and Task Management</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Projects and Task Management</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <header>
-        <h1>Project and Task Management</h1>
-    </header>
-    <main>
-        <section>
-            <h2>Projects</h2>
-            <ul>
-                <li>
-                    <strong>Project Title 1</strong>
-                    <span>- Task 1, Task 2, Task 3</span>
-                </li>
-                <li>
-                    <strong>Project Title 2</strong>
-                    <span>- Task 1, Task 2</span>
-                </li>
-            </ul>
-        </section>
-        <section>
-            <h2>Add New Project</h2>
-            <form>
-                <label for="project-name">Project Name:</label>
-                <input type="text" id="project-name" name="project-name" required>
-                <input type="submit" value="Add Project">
-            </form>
-        </section>
-    </main>
-    <footer>
-        <p>&copy; 2026 Project Organizer</p>
-    </footer>
+  <header class="site-header">
+    <h1>Project Organizer</h1>
+    <div id="auth-area">
+      <span id="user-status">Not signed in</span>
+      <button id="sign-in-btn">Sign In</button>
+      <button id="sign-out-btn" style="display:none">Sign Out</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="projects-section">
+      <h2>Projects</h2>
+      <ul id="project-list">
+        <!-- filled by projects.js -->
+      </ul>
+    </section>
+
+    <aside class="add-section">
+      <h2>Add New Project</h2>
+      <form id="add-project-form">
+        <label for="project-name">Project Name</label>
+        <input type="text" id="project-name" name="project-name" required>
+        <input type="submit" value="Add Project">
+      </form>
+    </aside>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Project Organizer</p>
+  </footer>
+
+  <!-- firebase-sync is an ES module (optional). Load it first so it can expose window.firebaseSync. -->
+  <script type="module" src="firebase-sync.js"></script>
+  <!-- main UI script -->
+  <script src="projects.js"></script>
 </body>
 </html>
