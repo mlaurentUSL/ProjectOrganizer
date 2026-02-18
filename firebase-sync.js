@@ -6,6 +6,7 @@
 let currentUser = null;
 let unsubscribeSnapshot = null;
 let authInitialized = false;
+let remoteUpdateCallback = null;
 
 // Initialize Firebase sync (setup auth observer and subscriptions)
 async function init() {
@@ -80,8 +81,8 @@ async function setupFirestoreSync() {
     unsubscribeSnapshot = onSnapshot(userDocRef, (docSnapshot) => {
       if (docSnapshot.exists()) {
         const data = docSnapshot.data();
-        if (data.projects && window.onRemoteProjectsUpdate) {
-          window.onRemoteProjectsUpdate(data.projects);
+        if (data.projects && remoteUpdateCallback) {
+          remoteUpdateCallback(data.projects);
         }
       }
     }, (error) => {
@@ -95,7 +96,7 @@ async function setupFirestoreSync() {
 // Subscribe to remote project updates
 function subscribe(onRemoteUpdate) {
   if (typeof onRemoteUpdate === 'function') {
-    window.onRemoteProjectsUpdate = onRemoteUpdate;
+    remoteUpdateCallback = onRemoteUpdate;
   }
 }
 
@@ -141,14 +142,21 @@ async function openSignIn() {
       const trySignup = confirm('Login failed. Would you like to create a new account?');
       if (trySignup) {
         try {
-          const authModule = await import('./auth.js');
+          // Reuse the same authModule from above scope
           const email = prompt('Enter email for new account:');
           if (!email) return;
           
           const password = prompt('Enter password (min 6 characters):');
           if (!password) return;
 
-          await authModule.signup(email, password);
+          // Get authModule again for signup
+          const authModuleForSignup = await import('./auth.js').catch(() => null);
+          if (!authModuleForSignup || !authModuleForSignup.signup) {
+            alert('Signup not available');
+            return;
+          }
+
+          await authModuleForSignup.signup(email, password);
           alert('Account created and signed in successfully!');
         } catch (signupError) {
           alert('Signup failed: ' + signupError.message);

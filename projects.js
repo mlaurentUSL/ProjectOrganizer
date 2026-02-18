@@ -27,7 +27,7 @@ function saveProjectsLocal(projects) {
 function addProject(name) {
   const projects = loadProjects();
   projects.push({ 
-    id: Date.now().toString(), 
+    id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 9), 
     name, 
     tasks: [] 
   });
