@@ -24,6 +24,8 @@ function saveProjectsLocal(projects) {
     projects.forEach((p, idx) => {
       try {
         // Create a flat item object for each project
+        // NOTE: Using 'name' as 'fullCode' for backward compatibility with simple projects.
+        // In a more complex system, fullCode would be a unique identifier like clientNumber-projectCode.
         const item = {
           name: p.name,
           fullCode: p.name, // use name as fullCode for simple case
@@ -311,7 +313,10 @@ function switchActivityTab(tabName) {
 }
 
 function mergeRemoteActivities(projectName, remoteActivities) {
-  // Simple last-write-wins merge
+  // Simple last-write-wins merge strategy
+  // NOTE: This completely replaces local activities with remote ones.
+  // In a production app, you'd want a more sophisticated merge that preserves
+  // local changes made while offline or uses timestamps to resolve conflicts.
   const activities = loadActivities();
   activities[projectName] = remoteActivities || [];
   saveActivitiesLocal(activities);

@@ -10,15 +10,21 @@
 let db = null;
 let collection, doc, setDoc, addDoc, onSnapshot, query, where, orderBy, serverTimestamp;
 
-try {
-  const { db: firebaseDb } = await import('./firebase-config.js');
-  db = firebaseDb;
-  
-  const firestoreModule = await import('firebase/firestore');
-  ({ collection, doc, setDoc, addDoc, onSnapshot, query, where, orderBy, serverTimestamp } = firestoreModule);
-} catch (e) {
-  console.warn('firebase-config.js or Firestore not available; firebaseSync will no-op', e);
-}
+// Initialize imports asynchronously to avoid top-level await issues
+(async () => {
+  try {
+    const { db: firebaseDb } = await import('./firebase-config.js');
+    db = firebaseDb;
+    
+    const firestoreModule = await import('firebase/firestore');
+    ({ collection, doc, setDoc, addDoc, onSnapshot, query, where, orderBy, serverTimestamp } = firestoreModule);
+    
+    // Update _ok flag after successful imports
+    firebaseSync._ok = !!db;
+  } catch (e) {
+    console.warn('firebase-config.js or Firestore not available; firebaseSync will no-op', e);
+  }
+})();
 
 const firebaseSync = {
   _ok: !!db,
@@ -46,7 +52,12 @@ const firebaseSync = {
   async saveItem(item) {
     if (!this._ok) return;
     try {
-      const id = item.fullCode || item.name || `${item.clientNumber || 'unknown'}`; // use fullCode as doc id when available
+      // Generate a unique document ID: prefer fullCode, then name, otherwise generate UUID
+      let id = item.fullCode || item.name;
+      if (!id) {
+        // Generate a simple unique ID if no identifier is available
+        id = `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      }
       const collectionName = this._getItemsCollection();
       const ref = doc(db, collectionName, id);
       const payload = { ...item, updatedAt: serverTimestamp() };
