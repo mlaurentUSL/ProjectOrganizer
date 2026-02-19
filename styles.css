@@ -34,6 +34,104 @@ body {
   border-radius: 6px;
 }
 
+/* Activity Panel Styles */
+.activity-panel {
+  flex: 1 1 100%;
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.activity-panel h2 {
+  margin-top: 0;
+  display: inline-block;
+  margin-right: 12px;
+}
+
+.activity-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0;
+  border-bottom: 2px solid #ddd;
+}
+
+.activity-tab {
+  background: none;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #555;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+}
+
+.activity-tab.active {
+  color: #007bff;
+  border-bottom-color: #007bff;
+  font-weight: bold;
+}
+
+.activity-content {
+  padding: 16px 0;
+}
+
+.activity-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.activity-form label {
+  font-weight: bold;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.activity-form label:first-child {
+  margin-top: 0;
+}
+
+.activity-form input,
+.activity-form textarea {
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.activity-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.activity-list li {
+  background: white;
+  border: 1px solid #ddd;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+}
+
+.activity-list li strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #007bff;
+}
+
+.activity-list li em {
+  font-size: 12px;
+  color: #666;
+}
+
 .project-item {
   border: 1px solid #ddd;
   padding: 8px;
@@ -50,6 +148,12 @@ body {
 
 .project-title {
   font-weight: bold;
+  cursor: pointer;
+  color: #007bff;
+}
+
+.project-title:hover {
+  text-decoration: underline;
 }
 
 .task-list {
@@ -79,4 +183,5 @@ body {
 @media (max-width: 700px) {
   .container { flex-direction: column; }
   .add-section { width: 100%; }
+  .activity-panel { width: 100%; }
 }

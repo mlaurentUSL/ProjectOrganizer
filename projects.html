@@ -32,6 +32,60 @@
         <input type="submit" value="Add Project">
       </form>
     </aside>
+
+    <!-- Activity Panel (shown when a project is selected) -->
+    <section id="activity-panel" class="activity-panel" style="display:none;">
+      <h2>Activity: <span id="activity-project-name"></span></h2>
+      <button id="close-activity-panel" class="btn small">Close</button>
+      
+      <div class="activity-tabs">
+        <button class="activity-tab active" data-tab="time">Time Entries</button>
+        <button class="activity-tab" data-tab="meetings">Meeting Notes</button>
+        <button class="activity-tab" data-tab="notes">Project Notes</button>
+      </div>
+
+      <!-- Time Entries Tab -->
+      <div class="activity-content" id="time-tab-content">
+        <form id="add-time-entry-form" class="activity-form">
+          <label for="time-hours">Hours</label>
+          <input type="number" id="time-hours" step="0.5" min="0" required>
+          <label for="time-description">Description</label>
+          <input type="text" id="time-description" required>
+          <button type="submit" class="btn small">Add Time Entry</button>
+        </form>
+        <ul id="time-entries-list" class="activity-list">
+          <!-- Filled by JS -->
+        </ul>
+      </div>
+
+      <!-- Meeting Notes Tab -->
+      <div class="activity-content" id="meetings-tab-content" style="display:none;">
+        <form id="add-meeting-note-form" class="activity-form">
+          <label for="meeting-title">Meeting Title</label>
+          <input type="text" id="meeting-title" required>
+          <label for="meeting-notes">Notes</label>
+          <textarea id="meeting-notes" rows="4" required></textarea>
+          <button type="submit" class="btn small">Add Meeting Note</button>
+        </form>
+        <ul id="meeting-notes-list" class="activity-list">
+          <!-- Filled by JS -->
+        </ul>
+      </div>
+
+      <!-- Project Notes Tab -->
+      <div class="activity-content" id="notes-tab-content" style="display:none;">
+        <form id="add-project-note-form" class="activity-form">
+          <label for="note-title">Note Title</label>
+          <input type="text" id="note-title" required>
+          <label for="note-content">Content</label>
+          <textarea id="note-content" rows="4" required></textarea>
+          <button type="submit" class="btn small">Add Project Note</button>
+        </form>
+        <ul id="project-notes-list" class="activity-list">
+          <!-- Filled by JS -->
+        </ul>
+      </div>
+    </section>
   </main>
 
   <footer>

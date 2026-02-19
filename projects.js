@@ -3,6 +3,11 @@
 // If window.firebaseSync is present it will be used to sync after local changes.
 
 const STORAGE_KEY = 'projectOrganizer.projects';
+const ACTIVITIES_KEY = 'projectOrganizer.activities';
+
+// Activity state
+let currentSelectedProject = null;
+let currentActivityTab = 'time';
 
 function loadProjects() {
   try {
@@ -14,10 +19,63 @@ function loadProjects() {
 
 function saveProjectsLocal(projects) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
-  // optional cloud sync if firebaseSync is initialized
-  if (window.firebaseSync && typeof window.firebaseSync.saveProjects === 'function') {
-    try { window.firebaseSync.saveProjects(projects); } catch { /* ignore */ }
+  // optional cloud sync if firebaseSync is initialized - save each project as item
+  if (window.firebaseSync && typeof window.firebaseSync.saveItem === 'function') {
+    projects.forEach((p, idx) => {
+      try {
+        // Create a flat item object for each project
+        const item = {
+          name: p.name,
+          fullCode: p.name, // use name as fullCode for simple case
+          type: 'project',
+          tasks: p.tasks || []
+        };
+        window.firebaseSync.saveItem(item);
+      } catch (e) { /* ignore */ }
+    });
   }
+}
+
+// Load activities from localStorage
+function loadActivities() {
+  try {
+    return JSON.parse(localStorage.getItem(ACTIVITIES_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+// Save activities to localStorage
+function saveActivitiesLocal(activities) {
+  localStorage.setItem(ACTIVITIES_KEY, JSON.stringify(activities));
+}
+
+// Add an activity (time/meeting/note) for a project
+function addActivity(projectName, type, data) {
+  const activities = loadActivities();
+  if (!activities[projectName]) {
+    activities[projectName] = [];
+  }
+  
+  const activity = {
+    id: Date.now().toString(),
+    type,
+    projectFullCode: projectName,
+    timestamp: new Date().toISOString(),
+    ...data
+  };
+  
+  activities[projectName].push(activity);
+  saveActivitiesLocal(activities);
+  
+  // Sync to Firestore if available
+  if (window.firebaseSync && typeof window.firebaseSync.saveActivity === 'function') {
+    try {
+      window.firebaseSync.saveActivity(activity);
+    } catch (e) { /* ignore */ }
+  }
+  
+  return activity;
 }
 
 function confirmAction(message) {
@@ -71,6 +129,8 @@ function createProjectItem(p, idx) {
   const title = document.createElement('span');
   title.className = 'project-title';
   title.textContent = p.name;
+  // Make project title clickable to open activity panel
+  title.addEventListener('click', () => openActivityPanel(p.name, idx));
   header.appendChild(title);
 
   const editBtn = document.createElement('button');
@@ -196,19 +256,207 @@ function setupAuthUI() {
   });
 }
 
+// Activity Panel Functions
+function openActivityPanel(projectName, projectIndex) {
+  currentSelectedProject = { name: projectName, index: projectIndex };
+  
+  const panel = document.getElementById('activity-panel');
+  const projectNameSpan = document.getElementById('activity-project-name');
+  
+  if (!panel || !projectNameSpan) return;
+  
+  projectNameSpan.textContent = projectName;
+  panel.style.display = 'block';
+  
+  // Switch to the first tab
+  switchActivityTab('time');
+  
+  // Load activities for this project
+  renderActivities(projectName);
+  
+  // Subscribe to remote activity updates if available
+  if (window.firebaseSync && typeof window.firebaseSync.subscribeActivities === 'function') {
+    try {
+      window.firebaseSync.subscribeActivities(projectName, (remoteActivities) => {
+        // Merge remote activities with local
+        mergeRemoteActivities(projectName, remoteActivities);
+        renderActivities(projectName);
+      });
+    } catch (e) { /* ignore */ }
+  }
+}
+
+function closeActivityPanel() {
+  const panel = document.getElementById('activity-panel');
+  if (panel) panel.style.display = 'none';
+  currentSelectedProject = null;
+}
+
+function switchActivityTab(tabName) {
+  currentActivityTab = tabName;
+  
+  // Update tab buttons
+  document.querySelectorAll('.activity-tab').forEach(btn => {
+    if (btn.dataset.tab === tabName) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+  
+  // Show/hide content
+  document.getElementById('time-tab-content').style.display = tabName === 'time' ? 'block' : 'none';
+  document.getElementById('meetings-tab-content').style.display = tabName === 'meetings' ? 'block' : 'none';
+  document.getElementById('notes-tab-content').style.display = tabName === 'notes' ? 'block' : 'none';
+}
+
+function mergeRemoteActivities(projectName, remoteActivities) {
+  // Simple last-write-wins merge
+  const activities = loadActivities();
+  activities[projectName] = remoteActivities || [];
+  saveActivitiesLocal(activities);
+}
+
+function renderActivities(projectName) {
+  const activities = loadActivities();
+  const projectActivities = activities[projectName] || [];
+  
+  // Render time entries
+  const timeList = document.getElementById('time-entries-list');
+  if (timeList) {
+    timeList.innerHTML = '';
+    const timeEntries = projectActivities.filter(a => a.type === 'time');
+    if (timeEntries.length === 0) {
+      timeList.innerHTML = '<li>No time entries yet.</li>';
+    } else {
+      timeEntries.forEach(entry => {
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>${entry.hours} hours</strong> - ${entry.description}<br><em>${new Date(entry.timestamp).toLocaleString()}</em>`;
+        timeList.appendChild(li);
+      });
+    }
+  }
+  
+  // Render meeting notes
+  const meetingsList = document.getElementById('meeting-notes-list');
+  if (meetingsList) {
+    meetingsList.innerHTML = '';
+    const meetings = projectActivities.filter(a => a.type === 'meeting');
+    if (meetings.length === 0) {
+      meetingsList.innerHTML = '<li>No meeting notes yet.</li>';
+    } else {
+      meetings.forEach(meeting => {
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>${meeting.title}</strong><br>${meeting.notes}<br><em>${new Date(meeting.timestamp).toLocaleString()}</em>`;
+        meetingsList.appendChild(li);
+      });
+    }
+  }
+  
+  // Render project notes
+  const notesList = document.getElementById('project-notes-list');
+  if (notesList) {
+    notesList.innerHTML = '';
+    const notes = projectActivities.filter(a => a.type === 'note');
+    if (notes.length === 0) {
+      notesList.innerHTML = '<li>No project notes yet.</li>';
+    } else {
+      notes.forEach(note => {
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>${note.title}</strong><br>${note.content}<br><em>${new Date(note.timestamp).toLocaleString()}</em>`;
+        notesList.appendChild(li);
+      });
+    }
+  }
+}
+
+function setupActivityPanel() {
+  // Close button
+  const closeBtn = document.getElementById('close-activity-panel');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeActivityPanel);
+  }
+  
+  // Tab switching
+  document.querySelectorAll('.activity-tab').forEach(btn => {
+    btn.addEventListener('click', () => switchActivityTab(btn.dataset.tab));
+  });
+  
+  // Time entry form
+  const timeForm = document.getElementById('add-time-entry-form');
+  if (timeForm) {
+    timeForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!currentSelectedProject) return;
+      
+      const hours = document.getElementById('time-hours').value;
+      const description = document.getElementById('time-description').value;
+      
+      addActivity(currentSelectedProject.name, 'time', { hours, description });
+      renderActivities(currentSelectedProject.name);
+      
+      // Reset form
+      timeForm.reset();
+    });
+  }
+  
+  // Meeting note form
+  const meetingForm = document.getElementById('add-meeting-note-form');
+  if (meetingForm) {
+    meetingForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!currentSelectedProject) return;
+      
+      const title = document.getElementById('meeting-title').value;
+      const notes = document.getElementById('meeting-notes').value;
+      
+      addActivity(currentSelectedProject.name, 'meeting', { title, notes });
+      renderActivities(currentSelectedProject.name);
+      
+      // Reset form
+      meetingForm.reset();
+    });
+  }
+  
+  // Project note form
+  const noteForm = document.getElementById('add-project-note-form');
+  if (noteForm) {
+    noteForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!currentSelectedProject) return;
+      
+      const title = document.getElementById('note-title').value;
+      const content = document.getElementById('note-content').value;
+      
+      addActivity(currentSelectedProject.name, 'note', { title, content });
+      renderActivities(currentSelectedProject.name);
+      
+      // Reset form
+      noteForm.reset();
+    });
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   setupForm();
   renderProjects();
   setupAuthUI();
+  setupActivityPanel();
 
   // If firebaseSync supports subscribe to remote updates, use it to update local UI.
-  if (window.firebaseSync && typeof window.firebaseSync.subscribe === 'function') {
-    window.firebaseSync.subscribe((remoteProjects) => {
-      if (!remoteProjects) return;
-      // replace local data with remote data and render
+  if (window.firebaseSync && typeof window.firebaseSync.subscribeItems === 'function') {
+    window.firebaseSync.subscribeItems((remoteItems) => {
+      if (!remoteItems) return;
+      // Convert remote items back to projects format and merge
       try {
-        saveProjectsLocal(remoteProjects);
-        renderProjects();
+        const projects = remoteItems.filter(item => item.type === 'project').map(item => ({
+          name: item.name,
+          tasks: item.tasks || []
+        }));
+        if (projects.length > 0) {
+          saveProjectsLocal(projects);
+          renderProjects();
+        }
       } catch (e) { /* ignore */ }
     });
   }

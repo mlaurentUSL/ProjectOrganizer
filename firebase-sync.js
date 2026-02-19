@@ -4,28 +4,41 @@
 // - init(), saveItem(item), subscribeItems(onUpdate),
 // - saveActivity(activity), subscribeActivities(projectFullCode, onUpdate),
 // - observeAuth(cb), openSignIn(), signOut()
+// Uses dev_ prefixed collections when no auth is present.
 
-import { db } from './firebase-config.js';
-import {
-  collection,
-  doc,
-  setDoc,
-  addDoc,
-  onSnapshot,
-  query,
-  where,
-  orderBy,
-  serverTimestamp
-} from 'firebase/firestore';
+// Defensive imports: if imports fail, methods will no-op
+let db = null;
+let collection, doc, setDoc, addDoc, onSnapshot, query, where, orderBy, serverTimestamp;
+
+try {
+  const { db: firebaseDb } = await import('./firebase-config.js');
+  db = firebaseDb;
+  
+  const firestoreModule = await import('firebase/firestore');
+  ({ collection, doc, setDoc, addDoc, onSnapshot, query, where, orderBy, serverTimestamp } = firestoreModule);
+} catch (e) {
+  console.warn('firebase-config.js or Firestore not available; firebaseSync will no-op', e);
+}
 
 const firebaseSync = {
   _ok: !!db,
   _itemsUnsub: null,
   _activitiesUnsub: null,
+  _currentUser: null,
+  _authObservers: [],
 
   init() {
     // No-op for now, but keep for future auth integration
     return;
+  },
+
+  // Get collection names based on auth state
+  _getItemsCollection() {
+    return this._currentUser ? 'projects_data' : 'dev_projects_data';
+  },
+
+  _getActivitiesCollection() {
+    return this._currentUser ? 'project_activities' : 'dev_project_activities';
   },
 
   // Save or update an item (client/project/task/subtask)
@@ -33,8 +46,9 @@ const firebaseSync = {
   async saveItem(item) {
     if (!this._ok) return;
     try {
-      const id = item.fullCode || `${item.clientNumber || 'unknown'}`; // use fullCode as doc id when available
-      const ref = doc(db, 'projects_data', id);
+      const id = item.fullCode || item.name || `${item.clientNumber || 'unknown'}`; // use fullCode as doc id when available
+      const collectionName = this._getItemsCollection();
+      const ref = doc(db, collectionName, id);
       const payload = { ...item, updatedAt: serverTimestamp() };
       await setDoc(ref, payload, { merge: true });
     } catch (e) {
@@ -46,7 +60,8 @@ const firebaseSync = {
   subscribeItems(onUpdate) {
     if (!this._ok) return;
     try {
-      const col = collection(db, 'projects_data');
+      const collectionName = this._getItemsCollection();
+      const col = collection(db, collectionName);
       if (this._itemsUnsub) this._itemsUnsub();
       this._itemsUnsub = onSnapshot(col, (snap) => {
         const arr = [];
@@ -62,11 +77,12 @@ const firebaseSync = {
   async saveActivity(activity) {
     if (!this._ok) return;
     try {
-      const col = collection(db, 'project_activities');
+      const collectionName = this._getActivitiesCollection();
+      const col = collection(db, collectionName);
       const payload = { ...activity, createdAt: serverTimestamp() };
       // if caller provided id use setDoc, otherwise addDoc
       if (activity.id) {
-        const ref = doc(db, 'project_activities', activity.id);
+        const ref = doc(db, collectionName, activity.id);
         await setDoc(ref, payload, { merge: true });
       } else {
         await addDoc(col, payload);
@@ -81,7 +97,8 @@ const firebaseSync = {
     if (!this._ok) return;
     try {
       if (this._activitiesUnsub) this._activitiesUnsub();
-      const col = collection(db, 'project_activities');
+      const collectionName = this._getActivitiesCollection();
+      const col = collection(db, collectionName);
       const q = query(col, where('projectFullCode', '==', projectFullCode), orderBy('createdAt', 'desc'));
       this._activitiesUnsub = onSnapshot(q, (snap) => {
         const arr = [];
@@ -93,18 +110,33 @@ const firebaseSync = {
     }
   },
 
-  // minimal auth shim (no auth flow for now)
+  // Auth observation - allows UI to react to auth state changes
   observeAuth(cb) {
-    // no auth implemented yet — call cb(null)
-    if (typeof cb === 'function') cb(null);
+    if (typeof cb === 'function') {
+      this._authObservers.push(cb);
+      // call immediately with current state
+      cb(this._currentUser);
+    }
+  },
+
+  // Notify all observers of auth state change
+  _notifyAuthObservers() {
+    this._authObservers.forEach(cb => {
+      try {
+        cb(this._currentUser);
+      } catch (e) {
+        console.warn('Auth observer error', e);
+      }
+    });
   },
 
   openSignIn() {
-    alert('Sign-in not configured yet.');
+    alert('Sign-in not configured yet. Using dev collections for now.');
   },
 
   signOut() {
-    // no-op
+    this._currentUser = null;
+    this._notifyAuthObservers();
   }
 };
 
