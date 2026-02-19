@@ -1,106 +1,113 @@
 // firebase-sync.js
-// Optional Firebase sync layer. This file is an ES module and will no-op if Firebase or auth is not configured.
-// It exposes window.firebaseSync with the following methods:
-// init(), saveProjects(projects), subscribe(onRemoteUpdate), observeAuth(cb), openSignIn(), signOut()
+// Optional Firestore sync layer. ES module. Defensive: if firebase-config or Firestore not available it no-ops.
+// Exposes window.firebaseSync with:
+// - init(), saveItem(item), subscribeItems(onUpdate),
+// - saveActivity(activity), subscribeActivities(projectFullCode, onUpdate),
+// - observeAuth(cb), openSignIn(), signOut()
 
 import { db } from './firebase-config.js';
-import { observeAuth as observeAuthOrig, signInWithEmail, login as loginOrig, logout as logoutOrig } from './auth.js';
-import { doc, setDoc, onSnapshot, serverTimestamp, getDoc } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  setDoc,
+  addDoc,
+  onSnapshot,
+  query,
+  where,
+  orderBy,
+  serverTimestamp
+} from 'firebase/firestore';
 
 const firebaseSync = {
-  _user: null,
-  _unsubscribe: null,
-  async init() {
+  _ok: !!db,
+  _itemsUnsub: null,
+  _activitiesUnsub: null,
+
+  init() {
+    // No-op for now, but keep for future auth integration
+    return;
+  },
+
+  // Save or update an item (client/project/task/subtask)
+  // item should include fullCode and type and identifying fields
+  async saveItem(item) {
+    if (!this._ok) return;
     try {
-      // observeAuth comes from auth.js
-      if (typeof observeAuthOrig === 'function') {
-        observeAuthOrig((user) => {
-          this._user = user;
-          // if signed in and there's a subscription requested, set up doc listener
-          if (this._user) {
-            // no auto-subscribe here; subscribers can call subscribe()
-          } else {
-            if (this._unsubscribe) {
-              try { this._unsubscribe(); } catch {}
-              this._unsubscribe = null;
-            }
-          }
-        });
+      const id = item.fullCode || `${item.clientNumber || 'unknown'}`; // use fullCode as doc id when available
+      const ref = doc(db, 'projects_data', id);
+      const payload = { ...item, updatedAt: serverTimestamp() };
+      await setDoc(ref, payload, { merge: true });
+    } catch (e) {
+      console.warn('firebaseSync.saveItem error', e);
+    }
+  },
+
+  // Subscribe to all items (or you can extend to scoped queries)
+  subscribeItems(onUpdate) {
+    if (!this._ok) return;
+    try {
+      const col = collection(db, 'projects_data');
+      if (this._itemsUnsub) this._itemsUnsub();
+      this._itemsUnsub = onSnapshot(col, (snap) => {
+        const arr = [];
+        snap.forEach(d => arr.push({ id: d.id, ...d.data() }));
+        onUpdate(arr);
+      }, (err) => console.warn('items snapshot error', err));
+    } catch (e) {
+      console.warn('firebaseSync.subscribeItems error', e);
+    }
+  },
+
+  // Save an activity (time / meeting / note)
+  async saveActivity(activity) {
+    if (!this._ok) return;
+    try {
+      const col = collection(db, 'project_activities');
+      const payload = { ...activity, createdAt: serverTimestamp() };
+      // if caller provided id use setDoc, otherwise addDoc
+      if (activity.id) {
+        const ref = doc(db, 'project_activities', activity.id);
+        await setDoc(ref, payload, { merge: true });
+      } else {
+        await addDoc(col, payload);
       }
     } catch (e) {
-      // silently fail if auth not configured
+      console.warn('firebaseSync.saveActivity error', e);
     }
   },
 
-  async saveProjects(projects) {
-    if (!this._user || !db) return;
+  // Subscribe to activities for a projectFullCode
+  subscribeActivities(projectFullCode, onUpdate) {
+    if (!this._ok) return;
     try {
-      const ref = doc(db, 'user_projects', this._user.uid);
-      await setDoc(ref, { projects, updatedAt: serverTimestamp() }, { merge: true });
+      if (this._activitiesUnsub) this._activitiesUnsub();
+      const col = collection(db, 'project_activities');
+      const q = query(col, where('projectFullCode', '==', projectFullCode), orderBy('createdAt', 'desc'));
+      this._activitiesUnsub = onSnapshot(q, (snap) => {
+        const arr = [];
+        snap.forEach(d => arr.push({ id: d.id, ...d.data() }));
+        onUpdate(arr);
+      }, (err) => console.warn('activities snapshot error', err));
     } catch (e) {
-      console.warn('firebase-sync saveProjects failed', e);
+      console.warn('firebaseSync.subscribeActivities error', e);
     }
   },
 
-  // onRemoteUpdate receives remoteProjects array
-  subscribe(onRemoteUpdate) {
-    if (!db) return;
-    if (!this._user) {
-      // try to fetch once when not signed in (no-op)
-      return;
-    }
-    try {
-      const ref = doc(db, 'user_projects', this._user.uid);
-      this._unsubscribe = onSnapshot(ref, (snap) => {
-        if (!snap.exists()) return;
-        const data = snap.data();
-        if (data && Array.isArray(data.projects)) {
-          onRemoteUpdate(data.projects);
-        }
-      }, (err) => {
-        console.warn('firebase-sync snapshot error', err);
-      });
-    } catch (e) {
-      console.warn('firebase-sync subscribe error', e);
-    }
-  },
-
+  // minimal auth shim (no auth flow for now)
   observeAuth(cb) {
-    // expose auth observer
-    if (typeof observeAuthOrig === 'function') {
-      observeAuthOrig(cb);
-    } else {
-      // no-op fallback
-    }
+    // no auth implemented yet — call cb(null)
+    if (typeof cb === 'function') cb(null);
   },
 
   openSignIn() {
-    // rely on auth.js login function
-    if (typeof loginOrig === 'function') {
-      // This simple flow assumes you have a UI elsewhere for email/password.
-      // Here we just alert the user to use an email/password flow.
-      // You can implement a popup sign-in flow or redirect as needed.
-      alert('Sign-in flow requires implementation (custom UI). See README for instructions.');
-    } else {
-      alert('Sign-in not configured.');
-    }
+    alert('Sign-in not configured yet.');
   },
 
-  async signOut() {
-    if (typeof logoutOrig === 'function') {
-      try {
-        await logoutOrig();
-      } catch (e) { /* ignore */ }
-    } else {
-      // no-op
-    }
+  signOut() {
+    // no-op
   }
 };
 
-// initialize quickly
 firebaseSync.init();
-
-// attach globally for projects.js to use
 window.firebaseSync = firebaseSync;
-
 export default firebaseSync;
