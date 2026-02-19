@@ -7,6 +7,17 @@ let currentUser = null;
 let unsubscribeSnapshot = null;
 let authInitialized = false;
 let remoteUpdateCallback = null;
+let cachedAuthModule = null;
+
+// Get or load auth module (cached after first load)
+async function getAuthModule() {
+  if (cachedAuthModule) {
+    return cachedAuthModule;
+  }
+  
+  cachedAuthModule = await import('./auth.js').catch(() => null);
+  return cachedAuthModule;
+}
 
 // Initialize Firebase sync (setup auth observer and subscriptions)
 async function init() {
@@ -14,7 +25,7 @@ async function init() {
   
   try {
     // Check if auth module is available
-    const authModule = await import('./auth.js').catch(() => null);
+    const authModule = await getAuthModule();
     if (!authModule || !authModule.observeAuth) {
       console.log('Firebase auth not available - running in local-only mode');
       return;
@@ -103,7 +114,7 @@ function subscribe(onRemoteUpdate) {
 // Observe auth state changes (wrapper for auth.observeAuth)
 async function observeAuth(callback) {
   try {
-    const authModule = await import('./auth.js').catch(() => null);
+    const authModule = await getAuthModule();
     if (authModule && authModule.observeAuth) {
       return authModule.observeAuth(callback);
     }
@@ -119,7 +130,7 @@ async function observeAuth(callback) {
 
 // Open sign-in flow (prompts for email/password)
 async function openSignIn() {
-  const authModule = await import('./auth.js').catch(() => null);
+  const authModule = await getAuthModule();
   if (!authModule || !authModule.login) {
     alert('Firebase authentication not configured');
     return;
@@ -163,7 +174,7 @@ async function openSignIn() {
 // Sign out current user
 async function signOut() {
   try {
-    const authModule = await import('./auth.js').catch(() => null);
+    const authModule = await getAuthModule();
     if (authModule && authModule.logout) {
       await authModule.logout();
       alert('Signed out successfully');
